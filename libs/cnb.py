@@ -17,6 +17,8 @@ SETTER_PATH = '/xml/setter.xml'
 GETTER_PATH = '/xml/getter.xml'
 LOGIN_VAL = 15
 STATUS_VAL = 2
+STATS_VAL = 10
+LOGS_VAL = 13
 
 
 class CNBError(Exception):
@@ -33,13 +35,9 @@ class CNB:
     def __init__(self, base_url):
         """Initialize the class."""
         self.base_url = base_url
-        # self.xml_path = f'{self.base_url}{GETTER_PATH}'
         self.session = requests.Session()
         self.getter = f'{self.base_url}{GETTER_PATH}'
         self.setter = f'{self.base_url}{SETTER_PATH}'
-
-        # self.session.cookies.set("SID", '1234567890')
-        # self.session.cookies.set_cookie({name: 'SID', value: '1234567890'})#, domain=self.base_url)
         self.token = None
 
     def init_session(self):
@@ -70,5 +68,19 @@ class CNB:
         data = self.get_post_data(STATUS_VAL)
         resp = self.session.post(self.getter, headers=STANDARD_HEADERS, data=data)
         if not resp.status_code == 200:
-            raise CNBError('Unable to get satatus.')
+            raise CNBError('Unable to get status.')
+        return resp.content
+
+    def get_stats(self):
+        data = self.get_post_data(STATS_VAL)
+        resp = self.session.post(self.getter, headers=STANDARD_HEADERS, data=data)
+        if not resp.status_code == 200:
+            raise CNBError('Unable to get stats.')
+        return resp.content
+
+    def get_logs(self):
+        data = self.get_post_data(LOGS_VAL)
+        resp = self.session.post(self.getter, headers=STANDARD_HEADERS, data=data)
+        if not resp.status_code == 200:
+            raise CNBError('Unable to get stats.')
         return resp.content

@@ -5,6 +5,7 @@ import argparse
 import requests
 
 from libs.cnb import CNB, CNBError
+from libs.network import get_hops
 
 
 DEFAULT_MODEM_URL = 'http://192.168.100.1'
@@ -30,11 +31,19 @@ elif args.password is None:
     parser.print_help()
     sys.exit()
 
-cnb = CNB(DEFAULT_MODEM_URL if args.modem is None else args.modem)
-try:
-    cnb.authorize(args.user, args.password)
-    print('Login Succeeded')
-    status = cnb.get_status()
-    print(status)
-except CNBError as ex:
-    print(str(ex))
+# cnb = CNB(DEFAULT_MODEM_URL if args.modem is None else args.modem)
+# try:
+#     cnb.authorize(args.user, args.password)
+#     print('Login Succeeded')
+#     status = cnb.get_status()
+#     print(status)
+#     stats = cnb.get_stats()
+#     print(stats)
+#     logs = cnb.get_logs()
+#     print(logs)
+# except CNBError as ex:
+#     print(str(ex))
+
+(router, gateway) = get_hops(b'start.ca')
+print(f'Router is {router[0]}')
+print(f'Gateway is {gateway[0]}')
