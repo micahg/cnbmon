@@ -5,7 +5,7 @@ import argparse
 import requests
 
 from libs.cnb import CNB, CNBError
-from libs.network import get_hops
+from libs.network import get_hops, do_ping
 
 
 DEFAULT_MODEM_URL = 'http://192.168.100.1'
@@ -47,3 +47,9 @@ elif args.password is None:
 (router, gateway) = get_hops(b'start.ca')
 print(f'Router is {router[0]}')
 print(f'Gateway is {gateway[0]}')
+
+ping_ms = do_ping(router[0])
+print(f'{ping_ms}ms to {router[0]}')
+
+ping_ms = do_ping(gateway[0])
+print(f'{ping_ms}ms to {gateway[0]}')
