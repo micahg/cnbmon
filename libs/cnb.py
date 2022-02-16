@@ -1,7 +1,8 @@
 """CNB Module."""
 import http.client as http_client
+import xml.etree.ElementTree as ET
 
-http_client.HTTPConnection.debuglevel = 1
+# http_client.HTTPConnection.debuglevel = 1
 
 import requests
 
@@ -17,7 +18,8 @@ SETTER_PATH = '/xml/setter.xml'
 GETTER_PATH = '/xml/getter.xml'
 LOGIN_VAL = 15
 STATUS_VAL = 2
-STATS_VAL = 10
+DOWNSTREAM_VAL = 10
+UPSTREAM_VAL = 11
 LOGS_VAL = 13
 
 
@@ -71,8 +73,15 @@ class CNB:
             raise CNBError('Unable to get status.')
         return resp.content
 
-    def get_stats(self):
-        data = self.get_post_data(STATS_VAL)
+    def get_downstream(self):
+        data = self.get_post_data(DOWNSTREAM_VAL)
+        resp = self.session.post(self.getter, headers=STANDARD_HEADERS, data=data)
+        if not resp.status_code == 200:
+            raise CNBError('Unable to get stats.')
+        return resp.content
+
+    def get_upstream(self):
+        data = self.get_post_data(UPSTREAM_VAL)
         resp = self.session.post(self.getter, headers=STANDARD_HEADERS, data=data)
         if not resp.status_code == 200:
             raise CNBError('Unable to get stats.')
@@ -84,3 +93,55 @@ class CNB:
         if not resp.status_code == 200:
             raise CNBError('Unable to get stats.')
         return resp.content
+
+    def log_stats(self, stat_string, output, ts):
+        """
+        Log Modem Stats ao a gnuplot compatible file
+
+        @param stat_string the stats
+        @param output the output folder
+        @param ts the timestamp string
+
+        <upstream>
+		    <usid>2</usid>
+		    <freq>25900000</freq>
+		    <power>39</power>
+		    <srate>5.120</srate>
+		    <mod>64QAM</mod>
+		    <channeltype>ATDMA</channeltype>
+		    <bandwidth>6400000</bandwidth>
+	    </upstream>
+
+	    <downstream>
+	        <freq>843000000</freq>
+	        <pow>6.100</pow>
+	        <snr>40</snr>
+	        <mod>256QAM</mod>
+	        <chid>32</chid>
+	    </downstream>
+        """
+        root = ET.fromstring(stat_string)
+        for child in root:
+
+            # bail if this doesn't have useful info
+            if child.tag != 'downstream' and child.tag != 'upstream':
+                continue
+
+            up_down = 'up' if child.tag == 'upstream' else 'dn'
+            freq = child.find('freq').text
+            modulation = child.find('mod').text
+            id = child.find('chid' if up_down == 'dn' else 'usid').text
+            power = child.find('pow' if up_down == 'dn' else 'power').text
+            snr = child.find('snr' if up_down == 'dn' else 'srate').text
+            bandwidth = None if up_down == 'dn' else child.find('bandwidth').text
+
+            filename=f'{output}/{up_down}_{id}_{freq}_{modulation}.dat'
+            # downstream is power and SNR
+            line = f'{ts},{power},{snr}\n'
+            if up_down == 'up':
+                # upstream is power, srate? and bandwidth
+                line = f'{ts},{power},{snr},{bandwidth}\n'
+
+            with open(filename, 'a+') as file:
+                file.write(line)
+                file.close()

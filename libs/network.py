@@ -102,7 +102,7 @@ def checksum(source_string):
     return answer
 
 
-def do_ping(host_ip, timeout = 0.500):
+def do_ping(host_ip, timeout=0.500):
     """
     Ping a host.
 
@@ -128,8 +128,6 @@ def do_ping(host_ip, timeout = 0.500):
     type, code, _, p_id, sequence = struct.unpack('bbHHh', rec_packet[20:28])
     if p_id == packet_id:
         return (end_time - start_time).total_seconds() * 1000;
-    else:
-        print(f'GOT PACKET WITH UNEXPECTED ID {p_id}')
-        None
 
-    print(f'DT is {dt}ms')
+    print(f'GOT PACKET WITH UNEXPECTED ID {p_id}')
+    return None
