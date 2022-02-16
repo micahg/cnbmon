@@ -121,9 +121,13 @@ class CNB:
 	    </downstream>
         """
         root = ET.fromstring(stat_string)
+        num = 0
         for child in root:
 
+            print(child.tag)
             # bail if this doesn't have useful info
+            if child.tag == 'us_num' or child.tag == 'ds_num':
+                num = child.text
             if child.tag != 'downstream' and child.tag != 'upstream':
                 continue
 
@@ -131,6 +135,11 @@ class CNB:
             freq = child.find('freq').text
             modulation = child.find('mod').text
             id = child.find('chid' if up_down == 'dn' else 'usid').text
+
+            # skip bogus channels
+            if id > num:
+                continue
+
             power = child.find('pow' if up_down == 'dn' else 'power').text
             snr = child.find('snr' if up_down == 'dn' else 'srate').text
             bandwidth = None if up_down == 'dn' else child.find('bandwidth').text

@@ -18,3 +18,21 @@ lan, and start recording:
 * Latency to the internal gateway (not done yet)
 * Latency to the external gateway (not done yet)
 
+## Plotting Output
+
+Run GNU Plot, then something like:
+
+```
+gnuplot> set timefmt "%Y-%m-%d %H:%M:%S"
+gnuplot> set datafile separator ","
+gnuplot> plot "dn_11_615000000_256QAM.dat" using 2:3 title "LSKJ" with lines
+```
+
+or, equivalently,
+
+```
+gnuplot -e "set term svg;set output 'plot.svg';set timefmt '%Y-%m-%d %H:%M:%S';set datafile separator ',';plot 'dn_11_615000000_256QAM.dat' using 2 title 'Downstream Channel 11 Power' with lines;plot 'dn_11_615000000_256QAM.dat' using 3 title 'Downstream Channel 11 SNR' with lines"
+```
+``````
+gnuplot -e "set term svg;set output 'plot.svg';set timefmt '%Y-%m-%d %H:%M:%S';set datafile separator ',';set xdata time;set format x '%Y-%m-%d %H:%M';set xtics rotate;plot 'dn_11_615000000_256QAM.dat' using 1:2 title 'Downstream Channel 11 Power' with lines"
+```
