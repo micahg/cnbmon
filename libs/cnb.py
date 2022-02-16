@@ -124,7 +124,6 @@ class CNB:
         num = 0
         for child in root:
 
-            print(child.tag)
             # bail if this doesn't have useful info
             if child.tag == 'us_num' or child.tag == 'ds_num':
                 num = child.text

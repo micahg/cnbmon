@@ -12,6 +12,7 @@ import struct
 import random
 import select
 import datetime
+import logging
 from ipaddress import ip_address, ip_network
 
 CLASS_A_NETWORK = ip_network('10.0.0.0/8')
@@ -102,7 +103,7 @@ def checksum(source_string):
     return answer
 
 
-def do_ping(host_ip, timeout=0.500):
+def do_ping(host_ip, timeout=0.250):
     """
     Ping a host.
 
@@ -129,5 +130,21 @@ def do_ping(host_ip, timeout=0.500):
     if p_id == packet_id:
         return (end_time - start_time).total_seconds() * 1000;
 
-    print(f'GOT PACKET WITH UNEXPECTED ID {p_id}')
+    logging.error(f'GOT PACKET WITH UNEXPECTED ID {p_id} (expected {packet_id})')
     return None
+
+
+def log_latency(host, ping, output, ts):
+    """
+    Log latency to a file.
+
+    @param host the hostname
+    @param ping the latency
+    @param output the output folder
+    @param ts the timestamp
+    """
+    filename = f'{output}/{host}.dat'
+    line = f'{ts},{ping}\n'
+    with open(filename, 'a+') as file:
+        file.write(line)
+        file.close()
