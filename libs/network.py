@@ -12,7 +12,6 @@ import struct
 import random
 import select
 import datetime
-import logging
 from ipaddress import ip_address, ip_network
 
 CLASS_A_NETWORK = ip_network('10.0.0.0/8')
@@ -103,7 +102,7 @@ def checksum(source_string):
     return answer
 
 
-def do_ping(host_ip, timeout=0.250):
+def do_ping(host_ip, timeout):
     """
     Ping a host.
 
@@ -120,17 +119,19 @@ def do_ping(host_ip, timeout=0.250):
     packet = header + data
     start_time = datetime.datetime.now()
     sock.sendto(packet, (host_ip, 1))
-    ready = select.select([sock], [], [], timeout)
-    if not ready[0]:
-        return None
+    while True:
+        ready = select.select([sock], [], [], timeout)
+        ping = (datetime.datetime.now() - start_time).total_seconds()
+        if not ready[0]:
+            return (timeout*1000) + 1
+        elif ping > timeout:
+            return ping * 1000
 
-    rec_packet, addr = sock.recvfrom(1024)
-    end_time = datetime.datetime.now()
-    type, code, _, p_id, sequence = struct.unpack('bbHHh', rec_packet[20:28])
-    if p_id == packet_id:
-        return (end_time - start_time).total_seconds() * 1000;
+        rec_packet, _ = sock.recvfrom(1024)
+        _, code, _, p_id, sequence = struct.unpack('bbHHh', rec_packet[20:28])
+        if p_id == packet_id:
+            return ping * 1000
 
-    logging.error(f'GOT PACKET WITH UNEXPECTED ID {p_id} (expected {packet_id})')
     return None
 
 

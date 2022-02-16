@@ -9,23 +9,32 @@ import logging
 from libs.cnb import CNB, CNBError
 from libs.network import get_hops, do_ping, log_latency
 
-DEFAULT_MODEM_URL = 'http://192.168.100.1'
+DEFAULT_TIMEOUT = 0.25
+DEFAULT_MODEM_IP = '192.168.100.1'
+DEFAULT_MODEM_URL = f'http://{DEFAULT_MODEM_IP}'
 PROCESSING_ABORTED = False
 OUTPUT_FOLDER = '.'
 
 
-def collect_host_timings(signal, hosts):
+def collect_host_timings(signal, host):
+    timeout = DEFAULT_TIMEOUT
+    timeout_ms = timeout * 1000
     while not PROCESSING_ABORTED:
-        for host in hosts:
-            ping_ms = do_ping(router[0])
-            if ping_ms is None:
-                signal.set()
-                logging.info('Ping error or timeout. Forcing collection')
-            else:
-                dt_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-                log_latency(host=host, ping=ping_ms, output=OUTPUT_FOLDER, ts=dt_str)
+        ping_ms = do_ping(host, timeout)
+        if ping_ms is None or ping_ms >= timeout_ms:
+            signal.set()
+            timeout = timeout * 2 if timeout < 2 else 2
+            timeout_ms = timeout * 1000
+            logging.debug(f'Ping error or timeout at {host} ({ping_ms} {timeout_ms}). Forcing collection and expanding timeout val to {timeout}')
+        else:
+            timeout = DEFAULT_TIMEOUT
+            timeout_ms = timeout * 1000
+
+        dt_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        log_latency(host=host, ping=ping_ms, output=OUTPUT_FOLDER, ts=dt_str)
+        logging.debug(f'{host} = {ping_ms} ({timeout})')
         time.sleep(0.1)
-    logging.info('Ping thread exiting')
+    logging.info(f'{host} Ping thread exiting')
 
 
 def collect_modem_stats(event):
@@ -100,8 +109,12 @@ logging.basicConfig(format='%(asctime)s: %(message)s',
 
 
 (router, gateway) = get_hops(b'start.ca')
-print(f'Router is {router[0]}')
-print(f'Gateway is {gateway[0]}')
+router = router[0]
+gateway = gateway[0]
+modem = DEFAULT_MODEM_IP
+print(f'Router is {router}')
+print(f'Gateway is {gateway}')
+print(f'Modem is {modem}')
 #
 # ping_ms = do_ping(router[0])
 # print(f'{ping_ms}ms to {router[0]}')
@@ -110,17 +123,24 @@ print(f'Gateway is {gateway[0]}')
 # print(f'{ping_ms}ms to {gateway[0]}')
 
 event = threading.Event()
-hosts = [gateway[0], router[0]]
-gateway_thread = threading.Thread(target=collect_host_timings, args=(event, hosts))
+# hosts = [gateway[0], router[0]]
+gateway_ping_thread = threading.Thread(target=collect_host_timings, args=(event, gateway))
+router_ping_thread = threading.Thread(target=collect_host_timings, args=(event, router))
+modem_ping_thread = threading.Thread(target=collect_host_timings, args=(event, modem))
 modem_thread = threading.Thread(target=collect_modem_stats, args=(event,))
 
 modem_thread.start()
-gateway_thread.start()
+gateway_ping_thread.start()
+router_ping_thread.start()
+modem_ping_thread.start()
 
-print('Waiting for modem thread')
+print('Waiting for threads')
 
 try:
     modem_thread.join()
+    gateway_ping_thread.join()
+    router_ping_thread.join()
+    modem_ping_thread.join()
 except KeyboardInterrupt:
     PROCESSING_ABORTED = True
     event.set()
