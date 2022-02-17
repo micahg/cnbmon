@@ -33,7 +33,7 @@ def collect_host_timings(signal, host):
         dt_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         log_latency(host=host, ping=ping_ms, output=OUTPUT_FOLDER, ts=dt_str)
         logging.debug(f'{host} = {ping_ms} ({timeout})')
-        time.sleep(1)
+        time.sleep(0.1)
     logging.info(f'{host} Ping thread exiting')
 
 
